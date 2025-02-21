@@ -17,7 +17,11 @@ export const PreviewMessage = ({ message }: { message: message; }) => {
     >
       <div
         className={cx(
-          'group-data-[role=user]/message:bg-zinc-700 dark:group-data-[role=user]/message:bg-muted group-data-[role=user]/message:text-white flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl'
+          'flex gap-4 rounded-xl p-4',
+          'group-data-[role=user]/message:bg-zinc-700 group-data-[role=user]/message:dark:bg-zinc-800 group-data-[role=user]/message:text-white',
+          'group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl',
+          'group-data-[role=assistant]/message:bg-white group-data-[role=assistant]/message:dark:bg-zinc-900 group-data-[role=assistant]/message:w-full',
+          'group-data-[role=assistant]/message:border group-data-[role=assistant]/message:border-zinc-200 group-data-[role=assistant]/message:dark:border-zinc-800'
         )}
       >
         {message.role === 'assistant' && (

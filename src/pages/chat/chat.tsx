@@ -7,63 +7,52 @@ import { Overview } from "@/components/custom/overview";
 import { Header } from "@/components/custom/header";
 import {v4 as uuidv4} from 'uuid';
 
-const socket = new WebSocket("ws://localhost:8090"); //change to your websocket endpoint
-
 export function Chat() {
   const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
   const [messages, setMessages] = useState<message[]>([]);
   const [question, setQuestion] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const messageHandlerRef = useRef<((event: MessageEvent) => void) | null>(null);
 
-  const cleanupMessageHandler = () => {
-    if (messageHandlerRef.current && socket) {
-      socket.removeEventListener("message", messageHandlerRef.current);
-      messageHandlerRef.current = null;
-    }
-  };
 
 async function handleSubmit(text?: string) {
-  if (!socket || socket.readyState !== WebSocket.OPEN || isLoading) return;
+  if (isLoading) return;
 
   const messageText = text || question;
+  if (!messageText.trim()) return;
+
   setIsLoading(true);
-  cleanupMessageHandler();
-  
   const traceId = uuidv4();
+
+  // 사용자 메시지 추가
   setMessages(prev => [...prev, { content: messageText, role: "user", id: traceId }]);
-  socket.send(messageText);
   setQuestion("");
 
   try {
-    const messageHandler = (event: MessageEvent) => {
-      setIsLoading(false);
-      if(event.data.includes("[END]")) {
-        return;
-      }
-      
-      setMessages(prev => {
-        const lastMessage = prev[prev.length - 1];
-        const newContent = lastMessage?.role === "assistant" 
-          ? lastMessage.content + event.data 
-          : event.data;
-        
-        const newMessage = { content: newContent, role: "assistant", id: traceId };
-        return lastMessage?.role === "assistant"
-          ? [...prev.slice(0, -1), newMessage]
-          : [...prev, newMessage];
-      });
+    // API 호출 (프록시 서버를 통해)
+    const response = await fetch(import.meta.env.VITE_PROXY_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        question: messageText,
+        uuid: traceId
+      })
+    });
 
-      if (event.data.includes("[END]")) {
-        cleanupMessageHandler();
-      }
-    };
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
 
-    messageHandlerRef.current = messageHandler;
-    socket.addEventListener("message", messageHandler);
+    // 응답 처리
+    const answer = await response.text();
+    
+    // 응답 메시지 추가
+    setMessages(prev => [...prev, { content: answer, role: "assistant", id: traceId }]);
   } catch (error) {
-    console.error("WebSocket error:", error);
+    console.error("Error:", error);
+  } finally {
     setIsLoading(false);
   }
 }
