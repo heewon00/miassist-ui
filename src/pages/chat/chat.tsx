@@ -17,6 +17,7 @@ interface ChatProps {
 export function Chat({ showSidebar }: ChatProps) {
   const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [session_info, setSessionInfo] = useState<Array<Record<string, string>>>([]);
   const [messages, setMessages] = useState<message[]>([]);
   const [question, setQuestion] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -27,15 +28,48 @@ export function Chat({ showSidebar }: ChatProps) {
   const navigate = useNavigate();
   const { sessionId } = useParams();
 
-  // URL의 세션 ID와 현재 세션 상태 동기화
+  // 🔥세션 목록 가져오기
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/read_all_sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch sessions');
+        }
+
+        const result = await response.json();
+        const newSessionInfo = result.session_info;
+        setSessionInfo(newSessionInfo);
+
+        // Convert session_info to ChatSession format
+        const formattedSessions = newSessionInfo.map((sessionItem: Record<string, string>) => {
+          const [[title, id]] = Object.entries(sessionItem);
+          return {
+            id,
+            title,
+            messages: []
+          };
+        });
+
+        setSessions(formattedSessions);
+      } catch (error) {
+        console.error('Error fetching sessions:', error);
+        showToast('세션 목록을 불러오는데 실패했습니다.', 'error');
+      }
+    };
+
+    fetchSessions();
+  }, []);
+
+  // 🔥URL의 세션 ID와 현재 세션 상태 동기화
   useEffect(() => {
     if (!showSidebar) return;
-    
-    // 세션이 없고 세션 목록이 있을 때 첫 번째 세션으로 이동
-    if (!sessionId && sessions.length > 0) {
-      navigate(`/chat/${sessions[0].id}`);
-      return;
-    }
 
     // 특정 세션 ID가 있지만 해당 세션이 존재하지 않을 때 /chat으로 리다이렉트
     if (sessionId && !sessions.find(session => session.id === sessionId)) {
@@ -43,13 +77,18 @@ export function Chat({ showSidebar }: ChatProps) {
     }
   }, [sessions, sessionId, navigate, showSidebar]);
 
-  // 현재 세션의 메시지 가져오기
-  const currentSession = sessions.find(session => session.id === sessionId);
+  // 🔥현재 세션의 메시지 가져오기
+  // 현재 세션 찾기 (세션 정보도 함께 저장)
+  const currentSession = sessions.find(session => {
+    const sessionInfo = session_info.find(info => Object.values(info)[0] === session.id);
+    return session.id === sessionId && sessionInfo;
+  });
   const currentMessages = showSidebar ? (currentSession?.messages || []) : messages;
 
-  // 새 세션 생성
+  // 🔥새 세션 생성
   const handleCreateSession = async () => {
     const newSessionId = uuidv4();
+    const newSessionName = 'New Chat'
     try {
       // 서버에 세션 생성 요청
       const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/create_session`, {
@@ -57,7 +96,7 @@ export function Chat({ showSidebar }: ChatProps) {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ session_id: newSessionId })
+        body: JSON.stringify({ session_id: newSessionId, session_name: newSessionName })
       });
 
       if (!response.ok) {
@@ -71,10 +110,27 @@ export function Chat({ showSidebar }: ChatProps) {
           id: newSessionId,
           messages: [],
           createdAt: new Date(),
-          title: "New Chat"
+          title: newSessionName
         };
-        setSessions(prev => [...prev, newSession]);
-        navigate(`/chat/${newSession.id}`);
+
+        // 세션 상태 업데이트를 동기적으로 처리
+        await Promise.all([
+          new Promise<void>(resolve => {
+            setSessions(prev => {
+              resolve();
+              return [newSession, ...prev];
+            });
+          }),
+          new Promise<void>(resolve => {
+            setSessionInfo(prev => {
+              resolve();
+              return [{ [newSessionName]: newSessionId }, ...prev];
+            });
+          })
+        ]);
+
+        setMessages([]);
+        await navigate(`/chat/${newSessionId}`, { replace: true });
         showToast('새 세션이 생성되었습니다.', 'success');
       } else {
         showToast('새 세션 생성에 실패했습니다.', 'error');
@@ -93,7 +149,51 @@ export function Chat({ showSidebar }: ChatProps) {
     }, 3000);
   }, []);
 
-  // 세션 삭제
+  // 🔥세션 이름 업데이트
+  const handleUpdateSessionName = async (sessionId: string, newName: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/update_session_name`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ session_id: sessionId, session_name: newName })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update session name');
+      }
+
+      const result = await response.json();
+      if (result.success) {
+        // Update local state
+        setSessions(prevSessions =>
+          prevSessions.map(session =>
+            session.id === sessionId
+              ? { ...session, title: newName }
+              : session
+          )
+        );
+        setSessionInfo(prevInfo =>
+          prevInfo.map(info => {
+            const [[, id]] = Object.entries(info);
+            if (id === sessionId) {
+              return { [newName]: id };
+            }
+            return info;
+          })
+        );
+        showToast('세션 이름이 업데이트되었습니다.', 'success');
+      } else {
+        showToast('세션 이름 업데이트에 실패했습니다.', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating session name:', error);
+      showToast('세션 이름 업데이트에 실패했습니다.', 'error');
+    }
+  };
+
+  // 🔥세션 삭제
   const handleDeleteSession = async (sessionId: string) => {
     try {
       // DB에서 세션 삭제
@@ -131,9 +231,52 @@ export function Chat({ showSidebar }: ChatProps) {
   };
 
   
-  // 세션 선택
-  const handleSelectSession = (sessionId: string) => {
+  // 🔥특정 세션 클릭 시 메시지 불러오기
+  const fetchSessionMessages = async (sessionId: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/read_session`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ session_id: sessionId })
+      });
+
+      if (!response.ok) {
+        throw new Error('메시지 불러오기 실패');
+      }
+
+      const result = await response.json();
+      
+      // 메시지 포맷 변환
+      const formattedMessages = result.messages.map((msg: { type: string; content: string }) => {
+        // human -> user로 변환하여 오른쪽에 표시
+        const role = msg.type === 'human' ? 'user' : 'assistant';
+        return {
+          role: role,
+          content: msg.content,
+          id: uuidv4()
+        };
+      });
+
+      // 현재 세션의 메시지 업데이트
+      setSessions(prevSessions => 
+        prevSessions.map(session => 
+          session.id === sessionId 
+            ? { ...session, messages: formattedMessages }
+            : session
+        )
+      );
+    } catch (error) {
+      console.error('메시지 불러오기 오류:', error);
+      showToast('대화 내용을 불러오는데 실패했습니다.', 'error');
+    }
+  };
+
+  // 🔥세션 선택
+  const handleSelectSession = async (sessionId: string) => {
     navigate(`/chat/${sessionId}`);
+    await fetchSessionMessages(sessionId);
   };
 
 
@@ -151,12 +294,13 @@ async function handleSubmit(text?: string) {
   if (!currentSessionId) {
     try {
       const newSessionId = uuidv4();
+      const newSessionName = 'New Chat'
       const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/create_session`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ session_id: newSessionId })
+        body: JSON.stringify({ session_id: newSessionId, session_name: newSessionName })
       });
 
       if (!response.ok) {
@@ -172,9 +316,26 @@ async function handleSubmit(text?: string) {
           createdAt: new Date(),
           title: messageText.length > 30 ? messageText.substring(0, 30) + '...' : messageText
         };
-        setSessions(prev => [...prev, newSession]);
+
+        // 세션 상태 업데이트를 동기적으로 처리
+        await Promise.all([
+          new Promise<void>(resolve => {
+            setSessions(prev => {
+              resolve();
+              return [newSession, ...prev];
+            });
+          }),
+          new Promise<void>(resolve => {
+            setSessionInfo(prev => {
+              resolve();
+              return [{ [newSession.title]: newSessionId }, ...prev];
+            });
+          })
+        ]);
+
         currentSessionId = newSessionId;
-        navigate(`/chat/${newSessionId}`);
+        await navigate(`/chat/${newSessionId}`, { replace: true });
+        setMessages([]);  // 새 세션의 메시지 초기화
       } else {
         showToast('세션 생성에 실패했습니다.', 'error');
         setIsLoading(false);
@@ -209,7 +370,7 @@ async function handleSubmit(text?: string) {
 
   try {
     // API 호출 (프록시 서버를 통해)
-    const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/update_session`, {
+    const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/get_answer`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -260,6 +421,7 @@ async function handleSubmit(text?: string) {
             onSessionSelect={handleSelectSession}
             onSessionCreate={handleCreateSession}
             onSessionDelete={handleDeleteSession}
+            onSessionNameUpdate={handleUpdateSessionName}
             sessions={sessions}
           />
         </div>

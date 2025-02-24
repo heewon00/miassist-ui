@@ -780,6 +780,23 @@ export const ThumbUpIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 );
 
+export const EditIcon = ({ size = 16 }: { size?: number }) => (
+  <svg
+    height={size}
+    strokeLinejoin="round"
+    viewBox="0 0 16 16"
+    width={size}
+    style={{ color: 'currentcolor' }}
+  >
+    <path
+      fillRule="evenodd"
+      clipRule="evenodd"
+      d="M11.7 1.3c-.4-.4-1-.4-1.4 0l-8 8c-.2.2-.3.4-.3.7v3c0 .6.4 1 1 1h3c.3 0 .5-.1.7-.3l8-8c.4-.4.4-1 0-1.4l-3-3zM4 12v-1.6l7-7L12.6 5l-7 7H4z"
+      fill="currentColor"
+    />
+  </svg>
+);
+
 export const ThumbDownIcon = ({ size = 16 }: { size?: number }) => (
   <svg
     height={size}

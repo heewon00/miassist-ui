@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { ChatSession } from '@/interfaces/interfaces';
-import { TrashIcon } from './icons';
+import { TrashIcon, EditIcon } from './icons';
 import { cx } from 'classix';
 import { ConfirmDialog } from './confirm-dialog';
+import { Input } from '../ui/input';
 
 interface ChatSessionsProps {
   currentSessionId: string;
   onSessionSelect: (sessionId: string) => void;
   onSessionCreate: () => void;
   onSessionDelete: (sessionId: string) => void;
+  onSessionNameUpdate: (sessionId: string, newName: string) => void;
   sessions: ChatSession[];
 }
 
@@ -18,10 +20,13 @@ export const ChatSessions = ({
   onSessionSelect,
   onSessionCreate,
   onSessionDelete,
+  onSessionNameUpdate,
   sessions
 }: ChatSessionsProps) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
   return (
     <div className="flex flex-col gap-2 p-2">
       <div className="flex items-center gap-2 px-2">
@@ -51,21 +56,58 @@ export const ChatSessions = ({
               )}
               onClick={() => onSessionSelect(session.id)}
             >
-              <span className="text-sm truncate">
-                {session.title}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="opacity-0 group-hover:opacity-100 h-6 w-6"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSessionToDelete(session.id);
-                  setDeleteDialogOpen(true);
-                }}
-              >
-                <TrashIcon size={14} />
-              </Button>
+              {editingSessionId === session.id ? (
+                <Input
+                  className="h-6 w-full text-sm"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      onSessionNameUpdate(session.id, editingName);
+                      setEditingSessionId(null);
+                    } else if (e.key === 'Escape') {
+                      setEditingSessionId(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    if (editingName.trim()) {
+                      onSessionNameUpdate(session.id, editingName);
+                    }
+                    setEditingSessionId(null);
+                  }}
+                  autoFocus
+                />
+              ) : (
+                <span className="text-sm truncate">
+                  {session.title}
+                </span>
+              )}
+              <div className="flex gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingSessionId(session.id);
+                    setEditingName(session.title);
+                  }}
+                >
+                  <EditIcon size={14} />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 h-6 w-6"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSessionToDelete(session.id);
+                    setDeleteDialogOpen(true);
+                  }}
+                >
+                  <TrashIcon size={14} />
+                </Button>
+              </div>
             </div>
           ))
         )}
