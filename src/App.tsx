@@ -9,7 +9,9 @@ function App() {
       <Router>
         <div className="w-full h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
           <Routes>
-            <Route path="/" element={<Chat />} />
+            <Route path="/" element={<Chat showSidebar={false} />} />
+            <Route path="/chat" element={<Chat showSidebar={true} />} />
+            <Route path="/chat/:sessionId" element={<Chat showSidebar={true} />} />
           </Routes>
         </div>
       </Router>

@@ -15,14 +15,14 @@ interface ChatInputProps {
 
 const suggestedActions = [
     {
-        title: 'How is the weather',
-        label: 'in Vienna?',
-        action: 'How is the weather in Vienna today?',
+        title: 'Application Gateway에 대해 설명해줘',
+        label: 'Azure Migration Factory',
+        action: 'Application Gateway에 대해 설명해줘',
     },
     {
-        title: 'Tell me a fun fact',
-        label: 'about pandas',
-        action: 'Tell me an interesting fact about pandas',
+        title: '마이그레이션 단계 계획에 대해 설명해줘',
+        label: 'Azure Migration Factory',
+        action: '마이그레이션 단계 계획에 대해 설명해줘',
     },
 ];
 
@@ -67,36 +67,38 @@ export const ChatInput = ({ question, setQuestion, onSubmit, isLoading }: ChatIn
         tabIndex={-1}
         />
 
-        <Textarea
-        placeholder="Send a message..."
-        className={cx(
-            'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted',
-        )}
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        onKeyDown={(event) => {
-            if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
+        <div className="relative">
+          <Textarea
+          placeholder="여기에 질문할 내용을 입력해주세요..."
+          className={cx(
+              'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted',
+          )}
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          onKeyDown={(event) => {
+              if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
 
-                if (isLoading) {
-                    toast.error('Please wait for the model to finish its response!');
-                } else {
-                    setShowSuggestions(false);
-                    onSubmit();
-                }
-            }
-        }}
-        rows={3}
-        autoFocus
-        />
+                  if (isLoading) {
+                      toast.error('Please wait for the model to finish its response!');
+                  } else {
+                      setShowSuggestions(false);
+                      onSubmit();
+                  }
+              }
+          }}
+          rows={3}
+          autoFocus
+          />
 
-        <Button 
-            className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5 border dark:border-zinc-600"
-            onClick={() => onSubmit(question)}
-            disabled={question.length === 0}
-        >
-            <ArrowUpIcon size={14} />
-        </Button>
+          <Button 
+              className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5 border dark:border-zinc-600"
+              onClick={() => onSubmit(question)}
+              disabled={question.length === 0}
+          >
+              <ArrowUpIcon size={14} />
+          </Button>
+        </div>
     </div>
     );
 }
