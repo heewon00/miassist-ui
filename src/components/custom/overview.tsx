@@ -6,7 +6,7 @@ export const Overview = () => {
     <>
     <motion.div
       key="overview"
-      className="max-w-3xl mx-auto md:mt-20"
+      className="h-full flex items-center justify-center"
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
@@ -18,7 +18,7 @@ export const Overview = () => {
           <span>+</span>
           <MessageCircle size={44}/>
         </p>
-        <p>
+        <p className="text-2xl font-semibold">
           Welcome to <strong>KT-MIASSIST🤖</strong><br />
         </p>
       </div>

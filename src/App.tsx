@@ -1,6 +1,6 @@
 import './App.css'
 import { Chat } from './pages/chat/chat'
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext'
 
 function App() {
@@ -9,7 +9,7 @@ function App() {
       <Router>
         <div className="w-full h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
           <Routes>
-            <Route path="/" element={<Chat showSidebar={false} />} />
+            <Route path="/" element={<Navigate to="/chat" replace />} />
             <Route path="/chat" element={<Chat showSidebar={true} />} />
             <Route path="/chat/:sessionId" element={<Chat showSidebar={true} />} />
           </Routes>

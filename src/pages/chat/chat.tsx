@@ -231,7 +231,7 @@ export function Chat({ showSidebar }: ChatProps) {
   };
 
   
-  // 🔥특정 세션 클릭 시 메시지 불러오기
+  // 특정 세션 클릭 시 메시지 불러오기
   const fetchSessionMessages = async (sessionId: string) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/read_session`, {
@@ -258,6 +258,13 @@ export function Chat({ showSidebar }: ChatProps) {
           id: uuidv4()
         };
       });
+
+      // 새 세션이고 사용자의 첫 메시지가 있다면 세션 이름 업데이트
+      if (result.messages.length === 1 && result.messages[0].type === 'human') {
+        const firstMessage = result.messages[0].content;
+        const sessionName = firstMessage.length > 30 ? firstMessage.substring(0, 30) + '...' : firstMessage;
+        await handleUpdateSessionName(sessionId, sessionName);
+      }
 
       // 현재 세션의 메시지 업데이트
       setSessions(prevSessions => 
@@ -353,7 +360,18 @@ async function handleSubmit(text?: string) {
 
   // 사용자 메시지 추가
   const userMessage = { content: messageText, role: "user", id: traceId };
+  
   if (showSidebar) {
+    // 현재 세션 찾기
+    const currentSession = sessions.find(session => session.id === currentSessionId);
+    
+    // 새로운 세션이고 첫 메시지라면 세션 이름 먼저 업데이트
+    if (currentSession && currentSession.messages.length === 0) {
+      const sessionName = messageText.length > 30 ? messageText.substring(0, 30) + '...' : messageText;
+      await handleUpdateSessionName(currentSessionId, sessionName);
+    }
+
+    // 메시지 추가
     setSessions(prev => prev.map(session => {
       if (session.id === currentSessionId) {
         return {
