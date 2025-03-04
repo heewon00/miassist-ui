@@ -317,11 +317,12 @@ async function handleSubmit(text?: string) {
       const result = await response.json();
       
       if (result.success) {
+        const sessionName = messageText.length > 30 ? messageText.substring(0, 30) + '...' : messageText;
         const newSession: ChatSession = {
           id: newSessionId,
           messages: [],
           createdAt: new Date(),
-          title: messageText.length > 30 ? messageText.substring(0, 30) + '...' : messageText
+          title: sessionName
         };
 
         // 세션 상태 업데이트를 동기적으로 처리
@@ -335,10 +336,13 @@ async function handleSubmit(text?: string) {
           new Promise<void>(resolve => {
             setSessionInfo(prev => {
               resolve();
-              return [{ [newSession.title]: newSessionId }, ...prev];
+              return [{ [sessionName]: newSessionId }, ...prev];
             });
           })
         ]);
+
+        // 세션 이름 업데이트 API 호출
+        await handleUpdateSessionName(newSessionId, sessionName);
 
         currentSessionId = newSessionId;
         await navigate(`/chat/${newSessionId}`, { replace: true });
