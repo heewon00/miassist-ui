@@ -1,14 +1,15 @@
-import { memo, ReactNode, ComponentProps as ReactProps, ComponentType } from "react";
+import { memo, ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-type MarkdownComponentProps = ReactProps<ComponentType> & {
+import type { HTMLAttributes } from 'react';
+
+type MarkdownComponentProps = HTMLAttributes<HTMLElement> & {
   children?: ReactNode;
   className?: string;
-  [key: string]: unknown;
 }
 
 const NonMemoizedMarkdown: React.FC<{ children: string }> = ({ children }) => {
