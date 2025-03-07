@@ -5,10 +5,13 @@ import { useState, useEffect, useCallback } from "react";
 import { message, ChatSession } from "../../interfaces/interfaces"
 import { Overview } from "@/components/custom/overview";
 import { Header } from "@/components/custom/header";
-import { ChatSessions } from "@/components/custom/chat-sessions";
+// import { ChatSessions } from "@/components/custom/chat-sessions";
 import { useNavigate, useParams } from 'react-router-dom';
 import {v4 as uuidv4} from 'uuid';
 import { Toast } from '@/components/custom/toast';
+import { Sidebar } from '@/components/custom/sidebar';
+import { SidebarToggle } from '@/components/custom/sidebar-toggle';
+import { cn } from '@/lib/utils';
 
 interface ChatProps {
   showSidebar: boolean;
@@ -21,6 +24,7 @@ export function Chat({ showSidebar }: ChatProps) {
   const [messages, setMessages] = useState<message[]>([]);
   const [question, setQuestion] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error'; isVisible: boolean;}>(
     { message: '', type: 'success', isVisible: false }
   );
@@ -436,19 +440,24 @@ async function handleSubmit(text?: string) {
 
   return (
     <div className="flex h-dvh bg-background">
-      {showSidebar && (
-        <div className="w-64 border-r border-border bg-white dark:bg-zinc-900">
-          <ChatSessions
-            currentSessionId={sessionId || ""}
-            onSessionSelect={handleSelectSession}
-            onSessionCreate={handleCreateSession}
-            onSessionDelete={handleDeleteSession}
-            onSessionNameUpdate={handleUpdateSessionName}
-            sessions={sessions}
-          />
-        </div>
-      )}
-      <div className="flex flex-col flex-1 min-w-0">
+      <SidebarToggle
+        isOpen={isSidebarOpen}
+        onClick={() => setIsSidebarOpen(true)}
+      />
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(!isSidebarOpen)}
+        onDeleteChat={handleDeleteSession}
+        sessions={sessions}
+        currentSessionId={sessionId || ''}
+        onSessionSelect={handleSelectSession}
+        onSessionCreate={handleCreateSession}
+        onSessionNameUpdate={handleUpdateSessionName}
+      />
+      
+      <div className={cn("flex flex-col flex-1 min-w-0 transition-all duration-200 relative", {
+        "ml-64": isSidebarOpen
+      })}>
         <Header/>
         <div className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4" ref={messagesContainerRef}>
           {currentMessages.length === 0 && <Overview />}

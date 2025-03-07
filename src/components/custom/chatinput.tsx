@@ -71,7 +71,7 @@ export const ChatInput = ({ question, setQuestion, onSubmit, isLoading }: ChatIn
           <Textarea
           placeholder="여기에 질문할 내용을 입력해주세요..."
           className={cx(
-              'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted',
+              'min-h-[24px] max-h-[120px] resize-none rounded-xl text-base bg-muted overflow-y-auto',
           )}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
@@ -87,7 +87,7 @@ export const ChatInput = ({ question, setQuestion, onSubmit, isLoading }: ChatIn
                   }
               }
           }}
-          rows={3}
+          rows={4}
           autoFocus
           />
 
