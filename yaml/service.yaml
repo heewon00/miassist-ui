@@ -1,0 +1,14 @@
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: chatbot-ui-service
+  namespace: chatbot-ui
+spec:
+  selector:
+    app: chatbot-ui
+  ports:
+    - protocol: TCP
+      port: 80        # 외부에서 접근할 포트
+      targetPort: 80  # 컨테이너 포트
+  type: LoadBalancer
