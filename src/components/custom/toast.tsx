@@ -15,7 +15,7 @@ export function Toast({ message, type, isVisible }: ToastProps) {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 50 }}
-          className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50"
+          className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[9999]"
         >
           <div className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg ${
             type === 'success' 

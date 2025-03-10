@@ -145,7 +145,7 @@ export function Chat({ showSidebar }: ChatProps) {
     }
   };
 
-  // 토스트 메시지 표시
+  // 🔥토스트 메시지 표시
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToast({ message, type, isVisible: true });
     setTimeout(() => {
@@ -235,7 +235,7 @@ export function Chat({ showSidebar }: ChatProps) {
   };
 
   
-  // 특정 세션 클릭 시 메시지 불러오기
+  // 🔥특정 세션 클릭 시 메시지 불러오기
   const fetchSessionMessages = async (sessionId: string) => {
     try {
       const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/read_session`, {
@@ -366,7 +366,7 @@ async function handleSubmit(text?: string) {
 
   const traceId = showSidebar ? currentSessionId! : uuidv4();
 
-  // 사용자 메시지 추가
+  // 🔥사용자 메시지 추가
   const userMessage = { content: messageText, role: "user", id: traceId };
   
   if (showSidebar) {
@@ -394,16 +394,17 @@ async function handleSubmit(text?: string) {
   }
   setQuestion("");
 
+  // 🔥실시간 메세지 업데이트
   try {
-    // API 호출 (프록시 서버를 통해)
-    const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/get_answer`, {
+    // Fetch API를 사용한 스트리밍 응답 처리
+    const response = await fetch(`${import.meta.env.VITE_PROXY_URL}/get_answer_stream`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         question: messageText,
-        uuid: traceId
+        session_id: traceId
       })
     });
 
@@ -411,28 +412,76 @@ async function handleSubmit(text?: string) {
       throw new Error('Network response was not ok');
     }
 
-    // 응답 처리
-    const result = await response.json();
-    const answer = result.answer;
-    
-    // 응답 메시지 추가
-    const assistantMessage = { content: answer, role: "assistant", id: traceId };
-    if (showSidebar) {
-      setSessions(prev => prev.map(session => {
-        if (session.id === currentSessionId) {
-          return {
-            ...session,
-            messages: [...session.messages, assistantMessage]
-          };
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('Reader not available');
+
+    let isFirstToken = true;
+    let accumulatedContent = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        // 스트리밍이 완료되면 토스트 메시지 표시
+        showToast('답변을 완료했습니다.', 'success');
+        break;
+      } 
+
+      // 새로운 텍스트 조각을 디코딩
+      const token = new TextDecoder().decode(value);
+      accumulatedContent += token;
+      
+      // 첫 번째 토큰이 도착하면 로딩 상태를 false로 설정
+      if (isFirstToken) {
+        setIsLoading(false);
+        isFirstToken = false;
+
+        // 첫 번째 토큰이 도착했을 때만 메시지 추가
+        if (showSidebar) {
+          setSessions(prev => prev.map(session => {
+            if (session.id === currentSessionId) {
+              return {
+                ...session,
+                messages: [...session.messages, { content: accumulatedContent, role: "assistant", id: traceId }]
+              };
+            }
+            return session;
+          }));
+        } else {
+          setMessages(prev => [...prev, { content: accumulatedContent, role: "assistant", id: traceId }]);
         }
-        return session;
-      }));
-    } else {
-      setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        // 이후 토큰들은 콘텐츠 업데이트
+        if (showSidebar) {
+          setSessions(prev => prev.map(session => {
+            if (session.id === currentSessionId) {
+              const lastMessage = session.messages[session.messages.length - 1];
+              return {
+                ...session,
+                messages: [
+                  ...session.messages.slice(0, -1),
+                  { ...lastMessage, content: accumulatedContent }
+                ]
+              };
+            }
+            return session;
+          }));
+        } else {
+          setMessages(prev => {
+            const lastMessage = prev[prev.length - 1];
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMessage, content: accumulatedContent }
+            ];
+          });
+        }
+      }
     }
+
+
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   } catch (error) {
     console.error("Error:", error);
+    showToast('답변을 실패했습니다.', 'error');
   } finally {
     setIsLoading(false);
   }

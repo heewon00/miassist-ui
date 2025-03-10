@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: chatbot-ui
-          image: aksaz01sboxpoc01.azurecr.io/heewon00/miassist-ui:version4
+          image: aksaz01sboxpoc01.azurecr.io/heewon00/miassist-ui:version5
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
